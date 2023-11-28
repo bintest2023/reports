@@ -1,3 +1,17 @@
 {
-    ...
+    "add": {
+        "total_tests": 6,
+        "failed_tests": 0,
+        "result": 1
+    }
+    "sub": {
+        "total_tests": 6,
+        "failed_tests": 0,
+        "result": 1
+    }
+    "is_prime": {
+        "total_tests": 17,
+        "failed_tests": 1,
+        "result": 0
+    }
 }
