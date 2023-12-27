@@ -2,16 +2,20 @@
     "add": {
         "total_tests": 6,
         "failed_tests": 0,
-        "result": 1
-    }
+        "seconds": 0.000203,
+        "result": true
+    },
     "sub": {
         "total_tests": 6,
         "failed_tests": 0,
-        "result": 1
-    }
+        "seconds": 0.000127,
+        "result": true
+    },
     "is_prime": {
         "total_tests": 17,
-        "failed_tests": 1,
-        "result": 0
-    }
+        "failed_tests": 0,
+        "seconds": 0.000319,
+        "result": true
+    },
+    "": null
 }
