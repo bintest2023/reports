@@ -1,12 +1,11 @@
 from __future__ import annotations
 import typing as t
-import json
-from pathlib import Path
 import sys
+from pathlib import Path
+import json
 import dataclasses
 
-data_dir = Path() / 'users'
-tables_dir = Path() / 'results'
+Table: t.TypeAlias = 'list[list[str]]'
 
 @dataclasses.dataclass
 class TestCaseResult:
@@ -15,60 +14,43 @@ class TestCaseResult:
     seconds: float = float('nan')
     result: bool = False
 
-def save_table(tbl: list[list[str]], file: Path) -> None:
-    print(f'Saving tbl to {file}...')
-    pprint(tbl)
-    print()
+
+def save_table(tbl: Table, file: Path) -> None:
     with file.open('wt', encoding='utf-8') as f:
-        f.write(f'| ')
-        f.write(' | '.join(tbl[0]))
-        f.write(f' |\n')
+        write_row = lambda l: f.write('| ' + ' | '.join(l) + ' |\n')
 
-        f.write(f'| ')
-        f.write(' | '.join(['---'] * len(tbl[0])))
-        f.write(f' |\n')
-
+        write_row(tbl[0])
+        write_row(['---'] * len(tbl[0]))
         for line in tbl[1:]:
-            f.write(f'| ')
-            f.write(' | '.join(line))
-            f.write(f' |\n')
+            write_row(line)
 
 
+def read_data(path: Path) -> dict[str, dict[str, dict[str, TestCaseResult]]]:
+    data = {}
+    for file in path.rglob('*.json'):
+        try:
+            content = json.load(file.open('rt', encoding='utf-8'))
+            content = {k: v for k, v in content.items() if k and v is not None}
+            content = {k: TestCaseResult(**v) for k, v in content.items()}
+        except Exception:
+            import traceback
 
-data: dict[str, dict[str, dict[str, TestCaseResult]]] = {}
-# {'denball': {'arrayd': {'a': TestCaseResult, 'b': TestCaseResult}}}
+            print(f'Unable to parse {file}:', file=sys.stderr)
+            traceback.print_exc()
+            continue
 
-for file in data_dir.rglob('*.json'):
-    user = file.parent.name
-    test = file.stem
-    try:
-        content = json.load(file.open('rt', encoding='utf-8'))
-        content = {k: v for k, v in content.items() if k and v is not None}
-        content = {k: TestCaseResult(**v) for k, v in content.items()}
-    except Exception:
-        import traceback
-        print(f'Unable to parse {file}:', file=sys.stderr)
-        traceback.print_exc()
-        continue
-
-    if user not in data:
-        data[user] = {}
-
-    data[user][test] = content
+        username = file.parent.name
+        test = file.stem
+        data.setdefault(username, {})[test] = content
+    return data
 
 
-test_suites = set(name for user in data.values() for name in user)
-
-# per-test tables
-for test in test_suites:
-    subcases = sorted(set(subcase for user in data.values() for subcase in user.get(test, {})))
-
-    result: list[list[str]] = []
-    result.append(['Username'] + [*subcases])
+def make_test_table(test: str) -> Table:
+    result = []
+    result.append(['username'] + [*test2subcases[test]])
     for username, user in data.items():
-        row = [username]
-        result.append(row)
-        for subcase in subcases:
+        result.append(row := [username])
+        for subcase in test2subcases[test]:
             tcres = data[username].get(test, {}).get(subcase, None)
             if tcres is None:
                 row.append('-')
@@ -76,34 +58,46 @@ for test in test_suites:
                 row.append('OK')
             else:
                 row.append(f'{tcres.total_tests - tcres.failed_tests}/{tcres.total_tests}')
-    save_table(result, tables_dir / f'{test}.md')
+    return result
 
-# global table
-result: list[list[str]] = []
-result.append(['Username'] + [*test_suites])
-for username, user in data.items():
-    row = [username]
-    result.append(row)
-    for test in test_suites:
-        subcases = sorted(set(subcase for user in data.values() for subcase in user.get(test, {})))
-        cnt = 0
-        if test not in user:
-            row.append('-')
-            continue
 
-        for subcase in subcases:
-            if subcase not in user[test]:
+def make_global_table() -> Table:
+    result = []
+    result.append(['username'] + [*tests])
+    for username, user in data.items():
+        result.append(row := [username])
+        for test in tests:
+            if test not in user:
+                row.append('-')
                 continue
-            if not user[test][subcase].result:
-                continue
-            cnt += 1
 
-        if cnt == len(subcases):
-            row.append('OK')
-        else:
-            row.append(f'{cnt}/{len(subcases)}')
-
-
+            subcases = test2subcases[test]
+            cnt = sum(subcase in user[test] and user[test][subcase].result for subcase in subcases)
+            if cnt == len(subcases):
+                row.append('OK')
+            else:
+                row.append(f'{cnt}/{len(subcases)}')
+    return result
 
 
-save_table(result, tables_dir / f'main.md')
+data_dir = Path() / 'users'
+tables_dir = Path() / 'results'
+
+# username->testname->subcasename->result
+data = read_data(data_dir)
+tests = sorted(set(test for user in data.values() for test in user))
+test2subcases = {
+    test: sorted(set(subcase for user in data.values() for subcase in user.get(test, {})))
+    for test in tests
+}
+
+
+
+def main() -> None:
+    save_table(make_global_table(), tables_dir / 'main.md')
+    for test in tests:
+        save_table(make_test_table(test), tables_dir / f'{test}.md')
+
+
+if __name__ == '__main__':
+    main()
