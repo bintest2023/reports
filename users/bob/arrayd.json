@@ -1,0 +1,15 @@
+{
+    "1": {
+        "total_tests": 10,
+        "failed_tests": 1,
+        "seconds": 0.0,
+        "result": false
+    },
+    "3": {
+        "total_tests": 10,
+        "failed_tests": 0,
+        "seconds": 0.0,
+        "result": true
+    },
+    "": null
+}
