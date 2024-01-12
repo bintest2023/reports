@@ -1,0 +1,32 @@
+name: run py script
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-python-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12' # Replace 'x' with the desired Python version
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Python Script
+        run: python gentable.py
+
+      - name: Commit Changes
+        run: |
+          git config --global user.name "${{ github.event.commits[0].author.name }}"
+          git config --global user.email "${{ github.event.commits[0].author.email }}"
+          git add .
+          git commit -m "Auto commit by CI/CD pipeline"
+          git push
