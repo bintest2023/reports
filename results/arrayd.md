@@ -1,6 +1,6 @@
 | username | 1 | 2 | 3 |
 | --- | --- | --- | --- |
-| bob | 9/10 | - | OK |
 | denball | - | - | - |
-| denballakh | - | - | - |
+| bob | 9/10 | - | OK |
 | john | OK | 9/10 | OK |
+| denballakh | - | - | - |
